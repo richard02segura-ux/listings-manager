@@ -1,0 +1,37 @@
+.lm-admin .lm-card {
+	background: #fff;
+	border: 1px solid #ccd0d4;
+	box-shadow: 0 1px 1px rgba(0,0,0,.04);
+	padding: 20px;
+	margin-top: 20px;
+}
+
+.lm-admin .lm-dashboard-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+	gap: 20px;
+}
+
+.lm-admin .status-ok {
+	color: #46b450;
+	font-weight: bold;
+}
+
+.lm-admin .status-error {
+	color: #dc3232;
+	font-weight: bold;
+}
+
+.lm-admin .tab-content {
+	padding: 10px 0;
+}
+
+.lm-admin .nav-tab-wrapper {
+	margin-bottom: 0;
+}
+
+.lm-admin .log-viewer-container pre {
+	margin: 0;
+	white-space: pre-wrap;
+	word-wrap: break-word;
+}

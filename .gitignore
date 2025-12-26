@@ -1,0 +1,21 @@
+# WordPress
+wp-config.php
+.htaccess
+
+# Plugin
+/logs/*.log
+/logs/*.txt
+.DS_Store
+
+# Dependencies
+/vendor/
+node_modules/
+
+# IDE
+.idea/
+.vscode/
+*.sublime-*
+
+# Environment
+.env
+.env.local
