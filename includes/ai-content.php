@@ -1,6 +1,6 @@
 <?php
 /**
- * Generación de contenido con OpenAI.
+ * Generación de contenido con Multi-IA (OpenAI + Gemini).
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -9,14 +9,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class LM_AI_Content {
 
+	private $provider;
 	private $api_key;
 
 	public function __construct() {
-		$this->api_key = LM_Settings::get_option( 'openai_api_key' );
+		$this->provider = LM_Settings::get_option( 'ai_provider', 'openai' );
+		$this->api_key = ( $this->provider === 'gemini' ) ? LM_Settings::get_option( 'gemini_api_key' ) : LM_Settings::get_option( 'openai_api_key' );
 	}
 
 	/**
-	 * Generar descripción optimizada para un negocio.
+	 * Generar descripción optimizada.
 	 */
 	public function generate_description( $business_data, $options = array() ) {
 		if ( empty( $this->api_key ) ) {
@@ -26,13 +28,14 @@ class LM_AI_Content {
 		$length = isset( $options['length'] ) ? $options['length'] : LM_Settings::get_option( 'ai_length', '500' );
 		$tone = isset( $options['tone'] ) ? $options['tone'] : LM_Settings::get_option( 'ai_tone', 'profesional' );
 		$language = isset( $options['language'] ) ? $options['language'] : LM_Settings::get_option( 'ai_language', 'es' );
+		$niche = isset( $options['niche'] ) ? $options['niche'] : 'generic';
 
-		$prompt = $this->build_prompt( $business_data, $length, $tone, $language );
+		$prompt = $this->build_prompt( $business_data, $length, $tone, $language, $niche );
 
-		$response = $this->make_openai_request( $prompt );
+		$response = ( $this->provider === 'gemini' ) ? $this->make_gemini_request( $prompt ) : $this->make_openai_request( $prompt );
 
 		if ( is_wp_error( $response ) ) {
-			LM_Logger::log( 'Error OpenAI: ' . $response->get_error_message(), 'ERROR' );
+			LM_Logger::log( "Error {$this->provider}: " . $response->get_error_message(), 'ERROR' );
 			return $this->get_fallback_description( $business_data );
 		}
 
@@ -40,98 +43,79 @@ class LM_AI_Content {
 	}
 
 	/**
-	 * Generar meta datos SEO.
+	 * Construir el prompt dinámico según el nicho y ubicación base.
 	 */
-	public function generate_seo_meta( $business_data ) {
-		if ( empty( $this->api_key ) ) {
-			return array(
-				'title' => $business_data['name'] . ' - Detalles y Opiniones',
-				'description' => 'Descubre todo sobre ' . $business_data['name'] . ' en nuestra guía completa.',
-			);
-		}
-
-		$prompt = "Genera un título SEO (máx 60 caracteres) y una meta descripción (máx 160 caracteres) para el siguiente negocio: " . $business_data['name'] . ". Formato JSON: {\"title\": \"...\", \"description\": \"...\"}";
-		
-		$response = $this->make_openai_request( $prompt, true );
-
-		if ( is_wp_error( $response ) ) {
-			return array(
-				'title' => $business_data['name'],
-				'description' => '',
-			);
-		}
-
-		$data = json_decode( $response, true );
-		return $data ? $data : array( 'title' => $business_data['name'], 'description' => '' );
-	}
-
-	/**
-	 * Construir el prompt para la descripción.
-	 */
-	private function build_prompt( $data, $length, $tone, $language ) {
+	private function build_prompt( $data, $length, $tone, $language, $niche ) {
+		$base_location = LM_Settings::get_option( 'base_location', '' );
 		$name = $data['name'];
 		$types = implode( ', ', $data['types'] );
-		$address = isset( $data['formatted_address'] ) ? $data['formatted_address'] : '';
 		
-		$prompt = "Actúa como un experto en SEO y redacción de contenidos para directorios de negocios. ";
-		$prompt .= "Escribe una descripción detallada para el negocio '{$name}', que es de tipo: {$types}. ";
-		if ( $address ) {
-			$prompt .= "Ubicado en: {$address}. ";
+		$prompts = array(
+			'generic' => "Escribe una descripción detallada para el negocio '{$name}'.",
+			'restaurant' => "Actúa como un crítico gastronómico. Describe la experiencia culinaria, el ambiente y los platos estrella de '{$name}'.",
+			'hotel' => "Actúa como un experto en hospitalidad. Resalta el confort, los servicios y la ubicación estratégica de '{$name}'.",
+			'health' => "Actúa como un asesor de salud. Enfócate en la confianza, profesionalidad y servicios especializados de '{$name}'.",
+			'retail' => "Actúa como un experto en shopping. Describe la variedad de productos y la experiencia de compra en '{$name}'.",
+		);
+
+		$niche_prompt = isset( $prompts[ $niche ] ) ? $prompts[ $niche ] : $prompts['generic'];
+		
+		$prompt = "{$niche_prompt} ";
+		$prompt .= "El negocio es de tipo: {$types}. ";
+		
+		if ( ! empty( $base_location ) ) {
+			$prompt .= "Optimiza el contenido para SEO local en la zona de {$base_location}. ";
 		}
-		$prompt .= "El texto debe tener aproximadamente {$length} palabras, con un tono {$tone} y en idioma {$language}. ";
-		$prompt .= "Incluye secciones sobre servicios, por qué elegirlos y qué esperar. Usa formato HTML básico (p, h2, ul, li).";
+
+		$prompt .= "Longitud: {$length} palabras. Tono: {$tone}. Idioma: {$language}. ";
+		$prompt .= "Usa formato HTML básico (p, h2, ul, li). No incluyas el nombre del negocio en los encabezados H2.";
 		
 		return $prompt;
 	}
 
 	/**
-	 * Realizar petición a OpenAI.
+	 * Petición a OpenAI.
 	 */
-	private function make_openai_request( $prompt, $json_mode = false ) {
+	private function make_openai_request( $prompt ) {
 		$url = 'https://api.openai.com/v1/chat/completions';
-		
 		$body = array(
 			'model' => 'gpt-3.5-turbo',
-			'messages' => array(
-				array( 'role' => 'user', 'content' => $prompt )
-			),
+			'messages' => array( array( 'role' => 'user', 'content' => $prompt ) ),
 			'temperature' => 0.7,
 		);
 
-		if ( $json_mode ) {
-			$body['response_format'] = array( 'type' => 'json_object' );
-		}
-
 		$response = wp_remote_post( $url, array(
-			'headers' => array(
-				'Authorization' => 'Bearer ' . $this->api_key,
-				'Content-Type'  => 'application/json',
-			),
-			'body'    => json_encode( $body ),
+			'headers' => array( 'Authorization' => 'Bearer ' . $this->api_key, 'Content-Type' => 'application/json' ),
+			'body' => json_encode( $body ),
 			'timeout' => 30,
 		) );
 
-		if ( is_wp_error( $response ) ) {
-			return $response;
-		}
-
+		if ( is_wp_error( $response ) ) return $response;
 		$data = json_decode( wp_remote_retrieve_body( $response ), true );
-
-		if ( isset( $data['choices'][0]['message']['content'] ) ) {
-			return trim( $data['choices'][0]['message']['content'] );
-		}
-
-		return new WP_Error( 'openai_error', isset( $data['error']['message'] ) ? $data['error']['message'] : 'Error desconocido de OpenAI' );
+		return isset( $data['choices'][0]['message']['content'] ) ? trim( $data['choices'][0]['message']['content'] ) : new WP_Error( 'api_error', 'Error OpenAI' );
 	}
 
 	/**
-	 * Contenido de respaldo si falla la IA.
+	 * Petición a Google Gemini.
 	 */
+	private function make_gemini_request( $prompt ) {
+		$url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=' . $this->api_key;
+		$body = array(
+			'contents' => array( array( 'parts' => array( array( 'text' => $prompt ) ) ) )
+		);
+
+		$response = wp_remote_post( $url, array(
+			'headers' => array( 'Content-Type' => 'application/json' ),
+			'body' => json_encode( $body ),
+			'timeout' => 30,
+		) );
+
+		if ( is_wp_error( $response ) ) return $response;
+		$data = json_decode( wp_remote_retrieve_body( $response ), true );
+		return isset( $data['candidates'][0]['content']['parts'][0]['text'] ) ? trim( $data['candidates'][0]['content']['parts'][0]['text'] ) : new WP_Error( 'api_error', 'Error Gemini' );
+	}
+
 	private function get_fallback_description( $data ) {
-		$desc = "<p>" . sprintf( __( 'Bienvenido a %s. Somos un negocio especializado en %s.', 'listings-manager' ), $data['name'], implode( ', ', $data['types'] ) ) . "</p>";
-		if ( isset( $data['formatted_address'] ) ) {
-			$desc .= "<p>" . sprintf( __( 'Nos encontramos ubicados en %s.', 'listings-manager' ), $data['formatted_address'] ) . "</p>";
-		}
-		return $desc;
+		return "<p>Bienvenido a {$data['name']}. Somos especialistas en " . implode( ', ', $data['types'] ) . ".</p>";
 	}
 }

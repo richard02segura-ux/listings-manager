@@ -13,6 +13,7 @@ jQuery(document).ready(function($) {
 	// Generación Individual
 	$('#lm-btn-generate').on('click', function() {
 		var placeId = $('#place_id').val();
+		var niche = $('#lm_niche').val();
 		if (!placeId) {
 			alert('Por favor, introduce un Place ID');
 			return;
@@ -28,6 +29,7 @@ jQuery(document).ready(function($) {
 			data: {
 				action: 'lm_generate_single',
 				place_id: placeId,
+				niche: niche,
 				_ajax_nonce: lm_ajax.nonce
 			},
 			success: function(response) {

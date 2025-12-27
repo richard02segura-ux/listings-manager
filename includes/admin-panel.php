@@ -26,6 +26,8 @@ class LM_Admin_Panel {
 		}
 
 		$place_id = sanitize_text_field( $_POST['place_id'] );
+		$niche = isset( $_POST['niche'] ) ? sanitize_text_field( $_POST['niche'] ) : 'generic';
+		
 		if ( empty( $place_id ) ) {
 			wp_send_json_error( array( 'message' => 'Place ID no proporcionado.' ) );
 		}
@@ -38,7 +40,7 @@ class LM_Admin_Panel {
 		}
 
 		$ai = new LM_AI_Content();
-		$description = $ai->generate_description( $place_data );
+		$description = $ai->generate_description( $place_data, array( 'niche' => $niche ) );
 		$seo_meta = $ai->generate_seo_meta( $place_data );
 
 		$post_id = lm_create_listing( $place_data, $description, $seo_meta );
@@ -169,6 +171,10 @@ class LM_Admin_Panel {
 		$fields = array(
 			'google_places_api_key',
 			'openai_api_key',
+			'gemini_api_key',
+			'ai_provider',
+			'base_location',
+			'enable_auto_sync',
 			'ai_length',
 			'ai_tone',
 			'ai_language',

@@ -17,7 +17,14 @@
 							<th scope="row"><label for="place_id">Google Place ID</label></th>
 							<td>
 								<input type="text" id="place_id" name="place_id" class="regular-text" placeholder="ChIJN1t_tDeuEmsRUsoyG83VY24">
-								<button type="button" id="lm-btn-generate" class="button button-primary">Generar Ficha</button>
+								<select id="lm_niche" name="niche">
+									<option value="generic">Genérico</option>
+									<option value="restaurant">Restaurante / Comida</option>
+									<option value="hotel">Hotel / Alojamiento</option>
+									<option value="health">Salud / Bienestar</option>
+									<option value="retail">Tienda / Retail</option>
+								</select>
+								<button type="button" id="lm-btn-generate" class="button button-primary">Generar Ficha Pro</button>
 							</td>
 						</tr>
 					</table>

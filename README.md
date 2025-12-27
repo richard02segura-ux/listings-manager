@@ -2,13 +2,15 @@
 
 Plugin de WordPress para generar automáticamente fichas de negocios (listings) utilizando Google Places API y OpenAI. Diseñado específicamente para integrarse con el tema **Listeo**.
 
-## 🚀 Características
+## 🚀 Características Ultra-Pro
 
-- **Integración con Google Places**: Obtiene datos reales de negocios (dirección, teléfono, web, horarios, fotos).
-- **Contenido IA (OpenAI)**: Genera descripciones optimizadas para SEO y meta etiquetas automáticamente.
-- **Gestión por Lotes**: Sistema de cola para procesar múltiples negocios sin saturar el servidor.
-- **Importación CSV**: Carga masiva de Place IDs desde archivos CSV.
-- **Panel de Administración**: Dashboard completo para monitorear el estado de las APIs y los listings creados.
+- **Motor Multi-IA**: Elige entre **OpenAI (GPT)** y **Google Gemini Pro** para generar tu contenido.
+- **SEO Local Avanzado**: Configura una ubicación base para que la IA optimice el contenido para tu ciudad específica.
+- **Plantillas por Nicho**: Prompts especializados para Restaurantes, Hoteles, Salud y Retail.
+- **Auto-Sync Engine**: Sincronización automática vía WP-Cron para mantener horarios y teléfonos siempre actualizados.
+- **Scraper de Logos**: Intenta obtener el logo oficial directamente desde el sitio web del negocio.
+- **Integración con Google Places**: Datos completos incluyendo fotos y geolocalización.
+- **Gestión por Lotes**: Sistema de cola robusto para importaciones masivas vía CSV.
 
 ## 📋 Requisitos
 

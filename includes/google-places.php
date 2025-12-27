@@ -132,6 +132,30 @@ class LM_Google_Places {
 	/**
 	 * Helper para descargar e insertar imagen en la biblioteca de medios.
 	 */
+	/**
+	 * Intentar obtener el logo desde el sitio web del negocio.
+	 */
+	public function scrape_logo( $website_url, $place_id ) {
+		if ( empty( $website_url ) ) return false;
+
+		$response = wp_remote_get( $website_url );
+		if ( is_wp_error( $response ) ) return false;
+
+		$html = wp_remote_retrieve_body( $response );
+		if ( preg_match( '/<link rel="icon" href="([^"]+)"/i', $html, $matches ) || 
+		     preg_match( '/<link rel="shortcut icon" href="([^"]+)"/i', $html, $matches ) ||
+		     preg_match( '/<meta property="og:image" content="([^"]+)"/i', $html, $matches ) ) {
+			
+			$logo_url = $matches[1];
+			if ( strpos( $logo_url, 'http' ) !== 0 ) {
+				$parsed_url = parse_url( $website_url );
+				$logo_url = $parsed_url['scheme'] . '://' . $parsed_url['host'] . '/' . ltrim( $logo_url, '/' );
+			}
+			return $this->download_image( $logo_url, 'logo-' . $place_id );
+		}
+		return false;
+	}
+
 	private function download_image( $url, $filename ) {
 		require_once ABSPATH . 'wp-admin/includes/image.php';
 		require_once ABSPATH . 'wp-admin/includes/file.php';

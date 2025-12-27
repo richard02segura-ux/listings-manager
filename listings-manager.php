@@ -62,6 +62,7 @@ class Listings_Manager {
 		require_once LM_PLUGIN_DIR . 'includes/cache-handler.php';
 		require_once LM_PLUGIN_DIR . 'includes/import-export.php';
 		require_once LM_PLUGIN_DIR . 'includes/category-mapper.php';
+		require_once LM_PLUGIN_DIR . 'includes/cron-handler.php';
 	}
 
 	/**
