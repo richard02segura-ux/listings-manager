@@ -54,7 +54,7 @@ class LM_AI_Content {
 			'generic' => "Escribe una descripción detallada para el negocio '{$name}'.",
 			'restaurant' => "Actúa como un crítico gastronómico. Describe la experiencia culinaria, el ambiente y los platos estrella de '{$name}'.",
 			'hotel' => "Actúa como un experto en hospitalidad. Resalta el confort, los servicios y la ubicación estratégica de '{$name}'.",
-			'health' => "Actúa como un asesor de salud. Enfócate en la confianza, profesionalidad y servicios especializados de '{$name}'.",
+			'health' => "Actúa como un experto en salud y bienestar. Describe la clínica o consultorio '{$name}', enfocándote en la confianza, la tecnología médica, la higiene y la atención personalizada. Menciona que son especialistas en su área (dentistas, odontólogos o clínica general) y por qué los pacientes locales deberían elegirlos.",
 			'retail' => "Actúa como un experto en shopping. Describe la variedad de productos y la experiencia de compra en '{$name}'.",
 		);
 

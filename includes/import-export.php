@@ -10,6 +10,34 @@ if ( ! defined( 'ABSPATH' ) ) {
 class LM_Import_Export {
 
 	/**
+	 * Guardar datos en un CSV espejo para control en Excel.
+	 */
+	public static function log_to_mirror_csv( $data ) {
+		$log_dir = LM_PLUGIN_DIR . 'logs';
+		$file_path = $log_dir . '/google-places-mirror.csv';
+		
+		$is_new = ! file_exists( $file_path );
+		$handle = fopen( $file_path, 'a' );
+
+		if ( $is_new ) {
+			fputcsv( $handle, array( 'Timestamp', 'Place ID', 'Nombre', 'Dirección', 'Teléfono', 'Web', 'Rating', 'Categorías Google' ) );
+		}
+
+		fputcsv( $handle, array(
+			date( 'Y-m-d H:i:s' ),
+			$data['place_id'],
+			$data['name'],
+			isset( $data['formatted_address'] ) ? $data['formatted_address'] : '',
+			isset( $data['formatted_phone_number'] ) ? $data['formatted_phone_number'] : '',
+			isset( $data['website'] ) ? $data['website'] : '',
+			isset( $data['rating'] ) ? $data['rating'] : '',
+			implode( ', ', $data['types'] )
+		) );
+
+		fclose( $handle );
+	}
+
+	/**
 	 * Importar desde un archivo CSV.
 	 */
 	public static function import_csv( $file_path ) {

@@ -12,56 +12,60 @@ class LM_Admin_Panel {
 	public function __construct() {
 		add_action( 'admin_menu', array( $this, 'add_menu' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
-		add_action( 'wp_ajax_lm_generate_single', array( $this, 'ajax_generate_single' ) );
+		add_action( 'wp_ajax_lm_preview_listing', array( $this, 'ajax_preview_listing' ) );
+		add_action( 'wp_ajax_lm_confirm_import', array( $this, 'ajax_confirm_import' ) );
 	}
 
 	/**
-	 * Manejador AJAX para generar una ficha individual.
+	 * AJAX: Pre-visualizar datos antes de importar.
 	 */
-	public function ajax_generate_single() {
+	public function ajax_preview_listing() {
 		check_ajax_referer( 'lm_nonce' );
-
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( array( 'message' => 'Permisos insuficientes.' ) );
-		}
+		if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( array( 'message' => 'No autorizado' ) );
 
 		$place_id = sanitize_text_field( $_POST['place_id'] );
-		$niche = isset( $_POST['niche'] ) ? sanitize_text_field( $_POST['niche'] ) : 'generic';
-		
-		if ( empty( $place_id ) ) {
-			wp_send_json_error( array( 'message' => 'Place ID no proporcionado.' ) );
-		}
+		$niche = sanitize_text_field( $_POST['niche'] );
 
 		$google = new LM_Google_Places();
 		$place_data = $google->get_place_details( $place_id );
-
-		if ( is_wp_error( $place_data ) ) {
-			wp_send_json_error( array( 'message' => $place_data->get_error_message() ) );
-		}
+		if ( is_wp_error( $place_data ) ) wp_send_json_error( array( 'message' => $place_data->get_error_message() ) );
 
 		$ai = new LM_AI_Content();
 		$description = $ai->generate_description( $place_data, array( 'niche' => $niche ) );
-		$seo_meta = $ai->generate_seo_meta( $place_data );
+		
+		// Guardar en CSV "Espejo" automáticamente.
+		LM_Import_Export::log_to_mirror_csv( $place_data );
 
-		$post_id = lm_create_listing( $place_data, $description, $seo_meta );
+		wp_send_json_success( array(
+			'place_id'    => $place_id,
+			'name'        => $place_data['name'],
+			'address'     => isset($place_data['formatted_address']) ? $place_data['formatted_address'] : '',
+			'phone'       => isset($place_data['formatted_phone_number']) ? $place_data['formatted_phone_number'] : '',
+			'description' => $description,
+			'niche'       => $niche
+		) );
+	}
 
+	/**
+	 * AJAX: Confirmar e importar a WordPress.
+	 */
+	public function ajax_confirm_import() {
+		check_ajax_referer( 'lm_nonce' );
+		if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( array( 'message' => 'No autorizado' ) );
+
+		$place_id = sanitize_text_field( $_POST['place_id'] );
+		$description = wp_kses_post( $_POST['description'] );
+		
+		$google = new LM_Google_Places();
+		$place_data = $google->get_place_details( $place_id );
+		
+		$post_id = lm_create_listing( $place_data, $description );
+		
 		if ( is_wp_error( $post_id ) ) {
 			wp_send_json_error( array( 'message' => $post_id->get_error_message() ) );
 		}
 
-		// Descargar fotos si existen.
-		if ( isset( $place_data['photos'] ) ) {
-			$photo_ids = $google->download_place_photos( $place_id, $place_data['photos'] );
-			if ( ! empty( $photo_ids ) ) {
-				set_post_thumbnail( $post_id, $photo_ids[0] );
-				update_post_meta( $post_id, '_gallery', $photo_ids );
-			}
-		}
-
-		wp_send_json_success( array( 
-			'message' => 'Ficha creada correctamente. <a href="' . get_edit_post_link( $post_id ) . '" target="_blank">Ver ficha</a>',
-			'post_id' => $post_id 
-		) );
+		wp_send_json_success( array( 'message' => 'Importado con éxito', 'url' => get_edit_post_link($post_id) ) );
 	}
 
 	/**
